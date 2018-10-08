@@ -9,7 +9,7 @@
     android:layout_marginBottom="4dp"
     android:clickable="true"
     android:focusable="true"
-    android:elevation="2dp"
+    app:cardElevation="3dp"
     android:foreground="?selectableItemBackground">
 
     <android.support.constraint.ConstraintLayout
@@ -24,7 +24,6 @@
             android:layout_width="match_parent"
             android:layout_height="150dp"
             android:scaleType="centerCrop"
-            android:transitionName="@string/transition_photo"
             />
 
         <TextView

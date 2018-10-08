@@ -1,5 +1,6 @@
 package com.example.xyzreader.ui;
 
+import android.annotation.TargetApi;
 import android.app.Fragment;
 import android.app.LoaderManager;
 import android.content.Intent;
@@ -7,11 +8,14 @@ import android.content.Loader;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.Typeface;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.design.widget.CollapsingToolbarLayout;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.ShareCompat;
+import android.support.v4.view.ViewCompat;
 import android.support.v4.widget.NestedScrollView;
 import android.support.v7.graphics.Palette;
 import android.support.v7.widget.CardView;
@@ -71,6 +75,7 @@ public class ArticleDetailFragment extends Fragment
   private RecyclerView mRecyclerView;
   private RecyclerView.Adapter mAdapter;
   private RecyclerView.LayoutManager mLayoutManager;
+  private String mTransitionName;
 
   /**
    * Mandatory empty constructor for the fragment manager to instantiate the fragment (e.g. upon
@@ -150,8 +155,22 @@ public class ArticleDetailFragment extends Fragment
 
     getLoaderManager().initLoader(0, null, this);
 
+    if (mTransitionName != null
+        && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+      setTransitionNamesLollipop();
+    }
+
     hideView();
     return mRootView;
+  }
+
+  @TargetApi(Build.VERSION_CODES.LOLLIPOP)
+  private void setTransitionNamesLollipop() {
+    mPhotoView.setTransitionName(mTransitionName);
+  }
+
+  public void setTransitionName(String transitionName) {
+    mTransitionName = transitionName;
   }
 
   private void hideView() {
@@ -166,6 +185,7 @@ public class ArticleDetailFragment extends Fragment
     card_text.setVisibility(View.VISIBLE);
     shareButton.setVisibility(View.VISIBLE);
     progress.setVisibility(View.INVISIBLE);
+    ActivityCompat.startPostponedEnterTransition(getActivity());
   }
 
   private void bindViews() {
@@ -253,6 +273,9 @@ public class ArticleDetailFragment extends Fragment
                 }
               })
           .into(mPhotoView);
+
+      ViewCompat.setTransitionName(mPhotoView, mCursor.getString(ArticleLoader.Query.TITLE));
+
       showView();
     } else {
       mRootView.setVisibility(View.GONE);

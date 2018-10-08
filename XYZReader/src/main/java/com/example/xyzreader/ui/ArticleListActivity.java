@@ -14,6 +14,8 @@ import android.os.Bundle;
 import android.support.design.widget.CoordinatorLayout;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityOptionsCompat;
+import android.support.v4.app.SharedElementCallback;
+import android.support.v4.view.ViewCompat;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.graphics.Palette;
@@ -39,6 +41,8 @@ import com.example.xyzreader.data.UpdaterService;
 
 import java.text.SimpleDateFormat;
 import java.util.GregorianCalendar;
+import java.util.List;
+import java.util.Map;
 
 /**
  * An activity representing a list of Articles. This activity has different presentations for
@@ -52,13 +56,10 @@ public class ArticleListActivity extends AppCompatActivity
   private static final String TAG = ArticleListActivity.class.toString();
   private SwipeRefreshLayout mSwipeRefreshLayout;
   private RecyclerView mRecyclerView;
-
-  private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.sss");
-  // Use default locale format
-  private SimpleDateFormat outputFormat = new SimpleDateFormat();
-  // Most time functions can only handle 1902 - 2037
-  private GregorianCalendar START_OF_EPOCH = new GregorianCalendar(2, 1, 1);
   private CoordinatorLayout mCoordinatorLayout;
+
+  public static int currentPosition;
+  private static final String KEY_CURRENT_POSITION = "currentPosition";
 
   private BroadcastReceiver mRefreshingReceiver =
       new BroadcastReceiver() {
@@ -74,6 +75,7 @@ public class ArticleListActivity extends AppCompatActivity
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
+    setupWindowAnimations();
     setContentView(R.layout.activity_article_list);
     mCoordinatorLayout = (CoordinatorLayout) findViewById(R.id.coordiatorLayout);
 
@@ -85,8 +87,25 @@ public class ArticleListActivity extends AppCompatActivity
 
     if (savedInstanceState == null) {
       onRefresh();
+    } else {
+      currentPosition = savedInstanceState.getInt(KEY_CURRENT_POSITION, 0);
     }
-    setupWindowAnimations();
+    setExitSharedElementCallback(
+        new SharedElementCallback() {
+          @Override
+          public void onMapSharedElements(List<String> names, Map<String, View> sharedElements) {
+            // Locate the ViewHolder for the clicked position.
+            RecyclerView.ViewHolder selectedViewHolder =
+                mRecyclerView.findViewHolderForAdapterPosition(ArticleListActivity.currentPosition);
+            if (selectedViewHolder == null || selectedViewHolder.itemView == null) {
+              return;
+            }
+
+            // Map the first shared element name to the child ImageView.
+            sharedElements.put(
+                names.get(0), selectedViewHolder.itemView.findViewById(R.id.thumbnail));
+          }
+        });
   }
 
   // https://gist.github.com/lopspower/1a0b4e0c50d90fbf2379
@@ -94,7 +113,7 @@ public class ArticleListActivity extends AppCompatActivity
     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
       Explode explode = new Explode();
       explode.setDuration(1000);
-      getWindow().setExitTransition(explode);
+      //getWindow().setExitTransition(explode);
     }
   }
 
@@ -145,6 +164,12 @@ public class ArticleListActivity extends AppCompatActivity
     mRecyclerView.setAdapter(null);
   }
 
+  @Override
+  protected void onSaveInstanceState(Bundle outState) {
+    super.onSaveInstanceState(outState);
+    outState.putInt(KEY_CURRENT_POSITION, currentPosition);
+  }
+
   private class Adapter extends RecyclerView.Adapter<ViewHolder> {
     private Cursor mCursor;
 
@@ -173,11 +198,24 @@ public class ArticleListActivity extends AppCompatActivity
 
               View sharedView = vh.thumbnailView;
               String transitionName = getString(R.string.transition_photo);
+              ViewCompat.setTransitionName(vh.thumbnailView, vh.titleView.getText().toString());
 
               ActivityOptionsCompat activityOptionsCompat =
                   ActivityOptionsCompat.makeSceneTransitionAnimation(
-                      ArticleListActivity.this, sharedView, transitionName);
+                      ArticleListActivity.this,
+                      sharedView,
+                      ViewCompat.getTransitionName(vh.thumbnailView));
+
               startActivity(intent, activityOptionsCompat.toBundle());
+
+              //              Bundle bundle =
+              // ActivityOptions.makeSceneTransitionAnimation(ArticleListActivity.this).toBundle();
+              //              startActivity(intent,bundle);
+
+              //              startActivity(intent,
+              //
+              // ActivityOptions.makeSceneTransitionAnimation(ArticleListActivity.this).toBundle());
+
             }
           });
       return vh;
